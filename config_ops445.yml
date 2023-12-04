@@ -1,0 +1,74 @@
+---
+- name: Configure VM for OPS445
+  hosts: myvmlab
+  become: yes
+
+  tasks:
+    - name: Update Apache (httpd)
+      yum:
+        name: httpd
+        state: latest
+
+    - name: Install EPEL repository
+      command: yum install -y epel-release
+      ignore_errors: yes
+      when: ansible_distribution == 'CentOS' and ansible_distribution_major_version == '7'
+
+    - name: Remove 'tree' package
+      package:
+        name: tree
+        state: absent
+
+    - name: Set hostname to Seneca ID
+      hostname:
+        name: asavotchka
+
+    - name: Create a new user with sudo access
+      user:
+        name: asavotchka
+        state: present
+        shell: /bin/bash
+        append: yes
+        create_home: yes
+        groups: sudo
+      become: yes
+
+    - name: Configure SSH access for the new user
+      authorized_key:
+        user: asavotchka
+        key: "{{ lookup('file', '/home/asavotchka/.ssh/id_rsa.pub') }}"
+        state: present
+      become: yes
+
+    - name: Set up directory structure using a loop
+      file:
+        path: "/home/asavotchka/ops445
+        state: directory
+        owner: "asavotchka"
+        group: "asavotchka"
+        mode: 0755
+      loop:
+        - ops445/lab1
+        - ops445/lab2
+        - ops445/lab3
+        - ops445/lab4
+        - ops445/lab5
+        - ops445/lab6
+        - ops445/lab7
+        - ops445/lab8
+        - ops445/lab9
+
+- name: Test playbook
+  hosts: myvmlab
+  become: yes
+
+  tasks:
+    - name: Install 'tree' package with sudo
+      package:
+        name: tree
+        state: present
+
+    - name: Check directory structure with 'tree' command
+      command: tree /home/asavotchka/ops445
+      register: tree_output
+
